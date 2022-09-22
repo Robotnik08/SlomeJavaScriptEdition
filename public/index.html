@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>SlomeJS</title>
+        <link rel="icon" href="Assets/player/char.png">
+        <link rel="stylesheet" href="Stylesheet.css">
+    </head>
+    <body>
+        <header id="head">
+            <img src="logo.png" id="logo">
+        </header>
+        <main>
+            <canvas id="Main" onmousemove="GetMousePosition(event)" onclick="breakBlockOnMouse()" oncontextmenu="event.preventDefault(); placeBlockOnMouse();"></canvas>
+            <script src="/socket.io/socket.io.js"></script>
+            <script src="SlomeJS.js"></script>
+        </main>
+    </body>
+</html>

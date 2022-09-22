@@ -1,0 +1,23 @@
+body {
+    overflow: hidden;
+    margin: 0%;
+}
+#Main {
+    width: 1440px;
+    height: 810px;
+    /* image-rendering: pixelated; */
+}
+main {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+#head {
+    padding: 30px;
+    background-color: red;
+}
+#logo {
+    align-self: flex-start;
+    width: max-content;
+    height: 50px;
+}
