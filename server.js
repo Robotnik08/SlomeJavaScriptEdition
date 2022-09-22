@@ -4,10 +4,9 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-const port = 6969;
+const port = 80;
 const worldName = 'map';
 var fs = require('fs');
-const { loadavg } = require('os');
 var dir = './ServerFiles';
 
 

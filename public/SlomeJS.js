@@ -385,7 +385,7 @@ function draw ()
     }
     con.drawImage(Playerimg,con.canvas.width/2 - UnitSize/2 +18,con.canvas.height/2 - UnitSize/2 + 32,UnitSize*(hboxX*2),UnitSize*(hboxX*2));
     con.font = "70px Georgia";
-    con.fillText("SlomeJs a0.0.9", 10, 60);
+    con.fillText("SlomeJs a0.0.10", 10, 60);
     con.fillText("FPS=" + CurrentFPS + ", mouseX=" + Math.round((positionX + mouseX)*1000)/1000 + ", mouseY=" + Math.round((positionY + mouseY)*1000)/1000, 10, 130);
     con.fillText("X=" + Math.round(positionX*1000)/1000, 10, 200);
     con.fillText("Y=" + Math.round(positionY*1000)/1000, 10, 270);
