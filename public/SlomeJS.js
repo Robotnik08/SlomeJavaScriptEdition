@@ -1,12 +1,12 @@
 //For setup, modify with caution
 const con = document.getElementById("Main").getContext("2d"); // create canvas with the tag "Main" for it to work, make the width/height 1080p
-const WindowScale = 2;
+const scale = 2;
 const hboxX = 0.4; 
 const hboxY = 0.37;
-const UnitSize = 160; 
-const OffsetX1 = 6;
-const OffsetX2 = 3;
-
+const unit = 160; 
+const offsetX = 6;
+const offsetY = 3;
+let message = 'first message';
 let UUID = 0;
 var socket = io();
 let mapSizeX = 0;
@@ -108,7 +108,7 @@ let VelocityX = 0;
 let VelocityY = 0;
 let mouseX = 0;
 let mouseY = 0;
-let Keys = {
+let keys = {
     w: false,
     a: false,
     s: false,
@@ -119,22 +119,21 @@ let selectedTile = {
     x: 0,
     y: 0
 };
-//const myTimeOut = setTimeout(GetServerSettingsAndWorld(), 100);
 document.addEventListener('keydown', function(event) {
-    if(event.keyCode == 65) {
-        Keys.a = true;
+    if(event.code == 'KeyA') {
+        keys.a = true;
     }
-    if(event.keyCode == 68) {
-        Keys.d = true;
+    if(event.code == 'KeyD') {
+        keys.d = true;
     }
-    if(event.keyCode == 87) {
-        Keys.w = true;
+    if(event.code == 'KeyW') {
+        keys.w = true;
     }
-    if(event.keyCode == 83) {
-        Keys.s = true;
+    if(event.code == 'keyS') {
+        keys.s = true;
     }
-    if(event.keyCode == 32) {
-        Keys.space = true;
+    if(event.code == 'Space') {
+        keys.space = true;
     }
 });
 function changeSelblock() {
@@ -145,32 +144,33 @@ function changeSelblock() {
     selBlock++;
 }
 document.addEventListener('keyup', function(event) {
-    if(event.keyCode == 65) {
-        Keys.a = false;
+    if(event.code == 'KeyA') {
+        keys.a = false;
     }
-    if(event.keyCode == 66) {
+    if(event.code == 'KeyB') {
         changeSelblock();
     }
-    if(event.keyCode == 68) {
-        Keys.d = false;
+    if(event.code == 'KeyD') {
+        keys.d = false;
     }
-    if(event.keyCode == 87) {
-        Keys.w = false;
+    if(event.code == 'KeyW') {
+        keys.w = false;
     }
-    if(event.keyCode == 83) {
-        Keys.s = false;
+    if(event.code == 'keyS') {
+        keys.s = false;
     }
-    if(event.keyCode == 32) {
-        Keys.space = false;
+    if(event.code == 'Space') {
+        keys.space = false;
     }
+    message += event.code;
 });
 
 
 setInterval(function() {
     if (doneLoading)
     {
-        con.canvas.width  = WindowScale*1920;
-        con.canvas.height = WindowScale*1080;
+        con.canvas.width  = scale*1920;
+        con.canvas.height = scale*1080;
         draw();
         Move();
         Physics();
@@ -204,15 +204,12 @@ function checkInbounds (x, y) {
     return false;
 }
 function GetMousePosition (evt) {
-    var rect = con.canvas.getBoundingClientRect();
-    var scaleX = con.canvas.width / rect.width;
-    var scaleY = con.canvas.height / rect.height;
-    mouseX = ((((evt.clientX - rect.left) * scaleX)-rect.right/2*scaleX)/UnitSize*2)/2;
-    mouseY = ((((evt.clientY - rect.top) * scaleY)-rect.bottom/2*scaleY)/UnitSize*2)/2;
+    mouseX=parseInt(evt.clientX-document.getElementById("Main").offsetLeft)/unit*2-12;
+    mouseY=parseInt(evt.clientY-document.getElementById("Main").offsetTop)/unit*2-6.9;
 }
 function Move ()
 {
-    if (Keys.d) {
+    if (keys.d) {
         VelocityX += Accelaration;
         if (VelocityX < 0) {
             VelocityX += Accelaration*2;
@@ -222,7 +219,7 @@ function Move ()
             VelocityX = MaxSpeed;
         }
     }
-    else if (Keys.a) {
+    else if (keys.a) {
         VelocityX -= Accelaration;
         if (VelocityX > 0) {
             VelocityX -= Accelaration*2;
@@ -241,13 +238,13 @@ function Move ()
     else {
         VelocityX = 0;
     }
-    if (map[Math.round(positionX + hboxX + OffsetX1)][mapSizeY - Math.round(positionY + hboxY + 2.06)] != 0 || map[Math.round(positionX - hboxX + OffsetX1)][mapSizeY - Math.round(positionY + hboxY + 2.06)] != 0) {
+    if (map[Math.round(positionX + hboxX + offsetX)][mapSizeY - Math.round(positionY + hboxY + 2.06)] != 0 || map[Math.round(positionX - hboxX + offsetX)][mapSizeY - Math.round(positionY + hboxY + 2.06)] != 0) {
         IsGrounded = true;
     }
     else {
         IsGrounded = false;
     }
-    if (Keys.space && IsGrounded) {
+    if (keys.space && IsGrounded) {
         VelocityY = -JumpStrength;
     }
     VelocityY += Gravity/60;
@@ -260,13 +257,13 @@ function Physics ()
     let passY = true;
     if (TryPositionX > -hboxX && TryPositionY > -hboxY && Math.round(TryPositionX - hboxX) < mapSizeX && Math.round(TryPositionY - hboxY) < mapSizeY)
     {
-        if (map[Math.round(TryPositionX -hboxX + OffsetX1)][mapSizeY - Math.round(positionY-hboxY + OffsetX2) + 1] != 0 && passX)
+        if (map[Math.round(TryPositionX -hboxX + offsetX)][mapSizeY - Math.round(positionY-hboxY + offsetY) + 1] != 0 && passX)
         {
             passX = false;
             VelocityX = 0;
             positionX = Math.round(positionX) - (0.499 - hboxX);
         }
-        if (map[Math.round(positionX-hboxX + OffsetX1)][mapSizeY - Math.round(TryPositionY - hboxY + OffsetX2) + 1] != 0 && passY)
+        if (map[Math.round(positionX-hboxX + offsetX)][mapSizeY - Math.round(TryPositionY - hboxY + offsetY) + 1] != 0 && passY)
         {
             passY = false;
             VelocityY = 0;
@@ -275,13 +272,13 @@ function Physics ()
     }
     if (TryPositionX > -hboxX && TryPositionY > -hboxY && Math.round(TryPositionX - hboxX) < mapSizeX && Math.round(TryPositionY + hboxY) < mapSizeY)
     {
-        if (map[Math.round(TryPositionX -hboxX + OffsetX1)][mapSizeY - Math.round(positionY+hboxY + OffsetX2) + 1] != 0 && passX)
+        if (map[Math.round(TryPositionX -hboxX + offsetX)][mapSizeY - Math.round(positionY+hboxY + offsetY) + 1] != 0 && passX)
         {
             passX = false;
             VelocityX = 0;
             positionX = Math.round(positionX) - (0.499 - hboxX);
         }
-        if (map[Math.round(positionX-hboxX + OffsetX1)][mapSizeY - Math.round(TryPositionY + hboxY + OffsetX2) + 1] != 0 && passY)
+        if (map[Math.round(positionX-hboxX + offsetX)][mapSizeY - Math.round(TryPositionY + hboxY + offsetY) + 1] != 0 && passY)
         {
             passY = false;
             VelocityY = 0;
@@ -290,13 +287,13 @@ function Physics ()
     }
     if (TryPositionX > -hboxX && TryPositionY > -hboxY && Math.round(TryPositionX + hboxX) < mapSizeX && Math.round(TryPositionY + hboxY) < mapSizeY)
     {
-        if (map[Math.round(TryPositionX +hboxX + OffsetX1)][mapSizeY - Math.round(positionY+hboxY + OffsetX2) + 1] != 0 && passX)
+        if (map[Math.round(TryPositionX +hboxX + offsetX)][mapSizeY - Math.round(positionY+hboxY + offsetY) + 1] != 0 && passX)
         {
             passX = false;
             VelocityX = 0;
             positionX = Math.round(positionX) + (0.499 - hboxX);
         }
-        if (map[Math.round(positionX+hboxX + OffsetX1)][mapSizeY - Math.round(TryPositionY + hboxY + OffsetX2) + 1] != 0 && passY)
+        if (map[Math.round(positionX+hboxX + offsetX)][mapSizeY - Math.round(TryPositionY + hboxY + offsetY) + 1] != 0 && passY)
         {
             passY = false;
             VelocityY = 0;
@@ -305,13 +302,13 @@ function Physics ()
     }
     if (TryPositionX > -hboxX && TryPositionY > -hboxY && Math.round(TryPositionX + hboxX) < mapSizeX && Math.round(TryPositionY - hboxY) < mapSizeY)
     {
-        if (map[Math.round(TryPositionX +hboxX + OffsetX1)][mapSizeY - Math.round(positionY-hboxY + OffsetX2) + 1] != 0 && passX)
+        if (map[Math.round(TryPositionX +hboxX + offsetX)][mapSizeY - Math.round(positionY-hboxY + offsetY) + 1] != 0 && passX)
         {
             passX = false;
             VelocityX = 0;
             positionX = Math.round(positionX) + (0.499 - hboxX);
         }
-        if (map[Math.round(positionX+hboxX + OffsetX1)][mapSizeY - Math.round(TryPositionY - hboxY + OffsetX2) + 1] != 0 && passY)
+        if (map[Math.round(positionX+hboxX + offsetX)][mapSizeY - Math.round(TryPositionY - hboxY + offsetY) + 1] != 0 && passY)
         {
             passY = false;
             VelocityY = 0;
@@ -348,8 +345,8 @@ function draw ()
 {
     con.drawImage(Skybox,0,0,con.canvas.width,con.canvas.height);
     con.drawImage(Skybox2,0,800,con.canvas.width,con.canvas.height/1.2);
-    selectedTile.x = Math.round(positionX + mouseX + 2);
-    selectedTile.y = Math.round(positionY + mouseY + 0.8);
+    selectedTile.x = Math.round(positionX + mouseX);
+    selectedTile.y = Math.round(positionY + mouseY);
     let hasFill = false;
     let needFillX = 0;
     let needFillY = 0;
@@ -361,13 +358,13 @@ function draw ()
             {
                 if (map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))] < mapcolours.length && map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))] > 0)
                 {
-                    con.drawImage(mapcolours[map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))]],(x-(positionX-Math.round(positionX)) + 5.5)*UnitSize,(y-(positionY-Math.round(positionY)) + 4.37)*UnitSize,UnitSize*1.01,UnitSize*1.01);
+                    con.drawImage(mapcolours[map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))]],(x-(positionX-Math.round(positionX)) + 5.5)*unit,(y-(positionY-Math.round(positionY)) + 4.37)*unit,unit*1.01,unit*1.01);
                 }
                 if (x - 6 +Math.round(positionX) == selectedTile.x && y+Math.round(positionY) == selectedTile.y && !hasFill)
                 {
                     hasFill = true;
-                    needFillX = (x-(positionX-Math.round(positionX)) + 5.5)*UnitSize;
-                    needFillY = (y-(positionY-Math.round(positionY)) + 6.37)*UnitSize;
+                    needFillX = (x-(positionX-Math.round(positionX)) + 5.5)*unit;
+                    needFillY = (y-(positionY-Math.round(positionY)) + 6.37)*unit;
                 }
             }   
         }
@@ -375,20 +372,21 @@ function draw ()
     if (hasFill)
     {
         con.fillStyle = "rgba(255, 255, 255, 0.5)";
-        con.fillRect(needFillX,needFillY,UnitSize*1.01,UnitSize*1.01);
+        con.fillRect(needFillX,needFillY,unit*1.01,unit*1.01);
     }
     con.fillStyle = "rgba(255, 255, 255, 1)";
     for (let x = 0; x < players.length; x++) {
         if (players[x].UUID != UUID && players[x].UUID > 0) {
-            con.drawImage(Playerimg,(players[x].posX-positionX + 11.6)*UnitSize,(players[x].posY-positionY + 6.47)*UnitSize,UnitSize*(hboxX*2),UnitSize*(hboxX*2));
+            con.drawImage(Playerimg,(players[x].posX-positionX + 11.6)*unit,(players[x].posY-positionY + 6.47)*unit,unit*(hboxX*2),unit*(hboxX*2));
         }
     }
-    con.drawImage(Playerimg,con.canvas.width/2 - UnitSize/2 +18,con.canvas.height/2 - UnitSize/2 + 32,UnitSize*(hboxX*2),UnitSize*(hboxX*2));
+    con.drawImage(Playerimg,con.canvas.width/2 - unit/2 +18,con.canvas.height/2 - unit/2 + 32,unit*(hboxX*2),unit*(hboxX*2));
     con.font = "70px Georgia";
-    con.fillText("SlomeJs a0.0.10", 10, 60);
+    con.fillText("SlomeJs a0.0.12", 10, 60);
     con.fillText("FPS=" + CurrentFPS + ", mouseX=" + Math.round((positionX + mouseX)*1000)/1000 + ", mouseY=" + Math.round((positionY + mouseY)*1000)/1000, 10, 130);
     con.fillText("X=" + Math.round(positionX*1000)/1000, 10, 200);
     con.fillText("Y=" + Math.round(positionY*1000)/1000, 10, 270);
+    //con.fillText(message, 10, 1000);
     con.drawImage(mapcolours[selBlock],10 ,340,240,240);
 }
 function RandomChance(chance)

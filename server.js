@@ -4,16 +4,28 @@ const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
-const port = 80;
-const worldName = 'map';
+
+let fail = false;
 var fs = require('fs');
-var dir = './ServerFiles';
-
-
 app.use(express.static('public'));
-server.listen(port, () => {
-console.log(`listening on *:${port}`);
+var dir = './serverFiles';
+let st = fs.readFileSync('settings.json');
+st = JSON.parse(st);
+if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir);
+}
+server.listen(st.port, () => {
+console.log(`listening on *:${st.port}`);
 });
+if (st.adminKey.toLowerCase() == "random") {
+    st.adminKey = Math.random()*1000000000 | 0;
+}
+if (st.adminKey == 'none') {
+    console.log('There is no admin key');
+} else {
+    console.log("The admin key is: '" + st.adminKey + "'");
+}
+
 let ConnectedUUID = [];
 class Player {
     constructor(UUID, posX, posY) {
@@ -25,17 +37,15 @@ class Player {
 //serverside
 let doneLoading = false;
 let map = [];
-const mapSizeX = 1024; // (mapSizeX > 0)
-const mapSizeY = 64; // (mapSizeY > 0 && mapSizeY % 2 == 0)
 const freq = 10; // 0-100, amount of noise 
 GenerateNewmap();
 function GenerateNewmap()
 {
     let PerlinTerrain = 0;
-    for (var x = 0; x < mapSizeX; x++)
+    for (var x = 0; x < st.mapSizeX; x++)
     {
         map[x] = [];
-        for (var y = 0; y < mapSizeY; y++)
+        for (var y = 0; y < st.mapSizeY; y++)
         {
             map[x][y] = 0;
         }
@@ -50,15 +60,15 @@ function GenerateNewmap()
                 PerlinTerrain--;
             }
         }
-        for (var y = 0; y <= PerlinTerrain + mapSizeY/2; y++)
+        for (var y = 0; y <= PerlinTerrain + st.mapSizeY/2; y++)
         {
             map[x][y] = 3;
         }
-        for (var y = PerlinTerrain + mapSizeY/2 - 3; y <= PerlinTerrain + mapSizeY/2; y++)
+        for (var y = PerlinTerrain + st.mapSizeY/2 - 3; y <= PerlinTerrain + st.mapSizeY/2; y++)
         {
             map[x][y] = 2;
         }
-        map[x][PerlinTerrain + mapSizeY/2] = 1;
+        map[x][PerlinTerrain + st.mapSizeY/2] = 1;
     }
     doneLoading = true;
 }
@@ -70,13 +80,19 @@ function RandomChance(chance)
     }
     return false;
 }
+setInterval(function() {
+    if (ConnectedUUID.length > 0) {
+        save();
+    }
+},1000*st.autoSave)
 io.on('connection', (socket) => {
     if (doneLoading) {
+        save();
         var UUID = 0;
         var world = {
             map1: map,
-            mapX: mapSizeX,
-            mapY: mapSizeY,
+            mapX: st.mapSizeX,
+            mapY: st.mapSizeY,
             playerList: ConnectedUUID
         };
         socket.emit('SendWorld', world);
@@ -107,6 +123,7 @@ io.on('connection', (socket) => {
             io.emit('getPlayer', ConnectedUUID);
         });
         socket.on('disconnect', function(){
+            save();
             for (let x = 0; x < ConnectedUUID.length; x++) {
                 if (ConnectedUUID[x].UUID == UUID) {
                     ConnectedUUID.splice(x, 1);
@@ -117,23 +134,17 @@ io.on('connection', (socket) => {
         });
     }
 });
-// if (!fs.existsSync(dir)) {
-//     fs.mkdirSync(dir);
-// }
-// if (!fs.existsSync(dir + '/' + worldName + '.slomejs')) {
-//     save();
-// } else {
-//     load();
-// }
-// function save () {
-//     var file = fs.createWriteStream(dir + '/' + worldName + '.slomejs');
-//     map.forEach(function(i) {
-//         file.write(i.join(', ') + '\n'); 
-//     });
-//     file.end();
-// }
-// function load () {
-//     const contents = readFileSync(dir + '/' + worldName + '.slomejs', 'utf-8');
-
-//     map = contents.split(/\r?\n/);
-// } 
+if (!fs.existsSync(dir + '/' + st.worldName + '.slomejs')) {
+    save();
+} else {
+    load();
+}
+function save () {
+    var file = fs.createWriteStream(dir + '/' + st.worldName + '.slomejs');
+    file.write(JSON.stringify(map));
+    file.end();
+}
+function load () {
+    const contents = fs.readFileSync(dir + '/' + st.worldName + '.slomejs', 'utf-8');
+    map = JSON.parse(contents);
+}

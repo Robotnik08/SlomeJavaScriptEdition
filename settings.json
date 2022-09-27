@@ -1,0 +1,11 @@
+{
+    "MOTD": ["Welcome"],
+    "mapSizeX": 640,
+    "mapSizeY": 100,
+    "worldName": "newWorld",
+    "onlineMode": true,
+    "adminKey": "random",
+    "chat": true,
+    "port": 80,
+    "autoSave": 300
+}
