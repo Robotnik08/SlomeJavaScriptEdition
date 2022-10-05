@@ -176,6 +176,24 @@ setInterval(function() {
         Physics();
     }
 }, 1000/60);
+// while(running) {
+
+//     // Update current time
+//     currentTime = now();
+
+//     // While we are behind in updates, do updates! Keep doing them till we catch up.
+//     while(nextUpdate < currentTime) {
+//         update();
+//         nextUpdate += skipTicks;
+//     }
+
+//     // Calculate how far in between updates we are:
+//     // Near 0.0 values: update just occurred.
+//     // Near 1.0 values: update about to happen.
+//     // Read this equation till it makes sense what's happening here:
+//     interpolation = (currTime + skipTicks - nextUpdate) / skipTicks;
+//     render(interpolation);
+// }
 function placeBlockOnMouse () {
     changeBlockSend (selectedTile.x, selectedTile.y, selBlock, false);
 }
