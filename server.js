@@ -1,22 +1,40 @@
 const express = require('express');
 const app = express();
-const http = require('http');
-const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server);
-
-let fail = false;
 var fs = require('fs');
-app.use(express.static('public'));
-var dir = './serverFiles';
+const isHttps = false; // if using an SSL key
 let st = fs.readFileSync('settings.json');
+let io = null;
 st = JSON.parse(st);
+if (!isHttps) {
+    const http = require('http');
+    app.use(express.static('public'));
+    const server = http.createServer(app);
+    server.listen(st.port, () => {
+        console.log(`listening on *:${st.port}`);
+    });
+    io = new Server(server);
+    serverStart();
+} else {
+    const https = require("https");
+    const options = {
+        key: fs.readFileSync("KEYLOCATION"),
+        cert: fs.readFileSync("CERTLOCATION")
+    };
+    console.log(options);
+    const server = https.createServer(options, app); // for https
+    server.listen(st.port, () => {
+        console.log(`listening on *:${st.port}`);
+    });
+    io = new Server(server);
+    serverStart();
+}
+
+var dir = './serverFiles';
 if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
 }
-server.listen(st.port, () => {
-console.log(`listening on *:${st.port}`);
-});
+
 if (st.adminKey.toLowerCase() == "random") {
     st.adminKey = Math.random()*1000000000 | 0;
 }
@@ -35,6 +53,57 @@ class Player {
     }
 }
 //serverside
+function serverStart () {
+    io.on('connection', (socket) => {
+        if (doneLoading) {
+            save();
+            var UUID = 0;
+            var world = {
+                map1: map,
+                mapX: st.mapSizeX,
+                mapY: st.mapSizeY,
+                playerList: ConnectedUUID
+            };
+            socket.emit('SendWorld', world);
+            socket.on('ChangeBlock', (data) => {
+                map[data.posX][data.posY] = data.blockID;
+                var changeVal = {
+                    x: data.posX,
+                    y: data.posY,
+                    ID: data.blockID
+                };
+                socket.broadcast.emit('change', changeVal);
+            });
+            socket.emit('requestPlayer', ConnectedUUID);
+            socket.on('player', (data) => {
+                UUID = data.UUID;
+                ConnectedUUID.push(data);
+            });
+            socket.on('UpdatePlayer', (data) => {
+                for (let x = 0; x < ConnectedUUID.length; x++)
+                {
+                    if (data.UUID == ConnectedUUID[x].UUID)
+                    {
+                        ConnectedUUID[x].posX = data.posX;
+                        ConnectedUUID[x].posY = data.posY;
+                        break;
+                    }
+                }
+                io.emit('getPlayer', ConnectedUUID);
+            });
+            socket.on('disconnect', function(){
+                save();
+                for (let x = 0; x < ConnectedUUID.length; x++) {
+                    if (ConnectedUUID[x].UUID == UUID) {
+                        ConnectedUUID.splice(x, 1);
+                        return;
+                    }
+                }
+                return;
+            });
+        }
+    });
+}
 let doneLoading = false;
 let map = [];
 const freq = 10; // 0-100, amount of noise 
@@ -85,55 +154,7 @@ setInterval(function() {
         save();
     }
 },1000*st.autoSave)
-io.on('connection', (socket) => {
-    if (doneLoading) {
-        save();
-        var UUID = 0;
-        var world = {
-            map1: map,
-            mapX: st.mapSizeX,
-            mapY: st.mapSizeY,
-            playerList: ConnectedUUID
-        };
-        socket.emit('SendWorld', world);
-        socket.on('ChangeBlock', (data) => {
-            map[data.posX][data.posY] = data.blockID;
-            var changeVal = {
-                x: data.posX,
-                y: data.posY,
-                ID: data.blockID
-            };
-            socket.broadcast.emit('change', changeVal);
-        });
-        socket.emit('requestPlayer', ConnectedUUID);
-        socket.on('player', (data) => {
-            UUID = data.UUID;
-            ConnectedUUID.push(data);
-        });
-        socket.on('UpdatePlayer', (data) => {
-            for (let x = 0; x < ConnectedUUID.length; x++)
-            {
-                if (data.UUID == ConnectedUUID[x].UUID)
-                {
-                    ConnectedUUID[x].posX = data.posX;
-                    ConnectedUUID[x].posY = data.posY;
-                    break;
-                }
-            }
-            io.emit('getPlayer', ConnectedUUID);
-        });
-        socket.on('disconnect', function(){
-            save();
-            for (let x = 0; x < ConnectedUUID.length; x++) {
-                if (ConnectedUUID[x].UUID == UUID) {
-                    ConnectedUUID.splice(x, 1);
-                    return;
-                }
-            }
-            return;
-        });
-    }
-});
+
 if (!fs.existsSync(dir + '/' + st.worldName + '.slomejs')) {
     save();
 } else {
