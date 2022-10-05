@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const { Server } = require("socket.io");
 var fs = require('fs');
-const isHttps = false; // if using an SSL key
+const isHttps = true; // if using an SSL key
 let st = fs.readFileSync('settings.json');
 let io = null;
 st = JSON.parse(st);
@@ -17,11 +17,11 @@ if (!isHttps) {
     serverStart();
 } else {
     const https = require("https");
+    app.use(express.static('public'));
     const options = {
         key: fs.readFileSync("KEYLOCATION"),
         cert: fs.readFileSync("CERTLOCATION")
     };
-    console.log(options);
     const server = https.createServer(options, app); // for https
     server.listen(st.port, () => {
         console.log(`listening on *:${st.port}`);
