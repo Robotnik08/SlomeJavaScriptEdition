@@ -12,7 +12,9 @@ var socket = io();
 let mapSizeX = 0;
 let mapSizeY = 0;
 let players = [];
+let messageLog = [];
 let selBlock = 1;
+let debug = false;
 class Player {
     constructor(UUID, posX, posY) {
         this.UUID = UUID;
@@ -20,6 +22,12 @@ class Player {
         this.posY = posY;
     }
 }
+class Message {
+    constructor(name, life) {
+        this.name = name;
+        this.life = life;
+    }
+};
 socket.on('SendWorld', (data) => {
     map = data.map1;
     mapSizeX = data.mapX;
@@ -60,6 +68,17 @@ setInterval(function SendPlayerPos() {
 socket.on('getPlayer', (data) => {
     players = data;
 });
+socket.on("getMessage", (data) => {
+    messageLog.push(new Message (data, 1000));
+});
+function sendMessage (message) {
+    console.log(message.split(" ")[0]);
+    if (message.split(" ")[0] == "/name") {
+        socket.emit('setName', message.split(" ")[1]);
+    } else {
+        socket.emit("sendMessage", message);
+    }
+};
 //Import Images
 const Skybox =  new Image();
 Skybox.src = "./Assets/Env/SkyBox.png";
@@ -174,26 +193,14 @@ setInterval(function() {
         draw();
         Move();
         Physics();
+        for (let i in messageLog) {
+            messageLog[i].life--;
+            if (messageLog[i].life < 1) {
+                messageLog.splice(i, 1);
+            }
+        }
     }
 }, 1000/60);
-// while(running) {
-
-//     // Update current time
-//     currentTime = now();
-
-//     // While we are behind in updates, do updates! Keep doing them till we catch up.
-//     while(nextUpdate < currentTime) {
-//         update();
-//         nextUpdate += skipTicks;
-//     }
-
-//     // Calculate how far in between updates we are:
-//     // Near 0.0 values: update just occurred.
-//     // Near 1.0 values: update about to happen.
-//     // Read this equation till it makes sense what's happening here:
-//     interpolation = (currTime + skipTicks - nextUpdate) / skipTicks;
-//     render(interpolation);
-// }
 function placeBlockOnMouse () {
     changeBlockSend (selectedTile.x, selectedTile.y, selBlock, false);
 }
@@ -401,9 +408,14 @@ function draw ()
     con.drawImage(Playerimg,con.canvas.width/2 - unit/2 +18,con.canvas.height/2 - unit/2 + 32,unit*(hboxX*2),unit*(hboxX*2));
     con.font = "70px Georgia";
     con.fillText("SlomeJs a0.0.12", 10, 60);
-    con.fillText("FPS=" + CurrentFPS + ", mouseX=" + Math.round((positionX + mouseX)*1000)/1000 + ", mouseY=" + Math.round((positionY + mouseY)*1000)/1000, 10, 130);
-    con.fillText("X=" + Math.round(positionX*1000)/1000, 10, 200);
-    con.fillText("Y=" + Math.round(positionY*1000)/1000, 10, 270);
+    if (debug) {
+        con.fillText("FPS=" + CurrentFPS + ", mouseX=" + Math.round((positionX + mouseX)*1000)/1000 + ", mouseY=" + Math.round((positionY + mouseY)*1000)/1000, 10, 130);
+        con.fillText("X=" + Math.round(positionX*1000)/1000, 10, 200);
+        con.fillText("Y=" + Math.round(positionY*1000)/1000, 10, 270);
+    }
+    for (let i in messageLog) {
+        con.fillText(messageLog[i].name, 10, 2000 - (messageLog.length - i)*70);
+    }
     //con.fillText(message, 10, 1000);
     con.drawImage(mapcolours[selBlock],10 ,340,240,240);
 }
