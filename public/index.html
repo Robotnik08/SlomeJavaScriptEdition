@@ -9,11 +9,14 @@
     <body>
         <header id="head">
             <img src="logo.png" id="logo">
+            <h1>Slome Java Script Edition</h1>
         </header>
         <main>
             <canvas id="Main" onmousemove="GetMousePosition(event)" onclick="breakBlockOnMouse()" oncontextmenu="event.preventDefault(); placeBlockOnMouse();"></canvas>
+            <br><input type="text" id="chat" name="chat" onkeyup="sendChatFromInput(event)">
+            <h2 id="kick"></h2>
             <script src="/socket.io/socket.io.js"></script>
-            <script src="SlomeJS.js"></script>
+            <script src="SlomeJS.js" id="script"></script>
         </main>
     </body>
 </html>

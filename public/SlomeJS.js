@@ -6,7 +6,6 @@ const hboxY = 0.37;
 const unit = 160; 
 const offsetX = 6;
 const offsetY = 3;
-let message = 'first message';
 let UUID = 0;
 var socket = io();
 let mapSizeX = 0;
@@ -32,6 +31,13 @@ socket.on('SendWorld', (data) => {
     map = data.map1;
     mapSizeX = data.mapX;
     mapSizeY = data.mapY;
+    positionX = mapSizeX/2;
+    for (let y = 0; y < mapSizeY; y++) {
+        if (map[mapSizeX/2 + 6][mapSizeY - y] > 0) {
+            positionY = y - 3;
+            break;
+        }
+    }
     doneLoading = true;
 });
 socket.on('change', (data) => {
@@ -72,13 +78,27 @@ socket.on("getMessage", (data) => {
     messageLog.push(new Message (data, 1000));
 });
 function sendMessage (message) {
-    console.log(message.split(" ")[0]);
-    if (message.split(" ")[0] == "/name") {
-        socket.emit('setName', message.split(" ")[1]);
-    } else {
-        socket.emit("sendMessage", message);
+    switch (message.split(" ")[0]) {
+        case '/name':
+            socket.emit('setName', message.split(" ")[1]);
+            break;
+        case '/list':
+            messageLog.push(new Message (players.length + " player(s) online!", 1000));
+            break;
+        case '/debug':
+            debug = !debug;
+            break;
+        default:
+            socket.emit("sendMessage", message);
+            break;
     }
 };
+socket.on('kickPlayer', (data) => {
+    document.getElementById('Main').remove();
+    document.getElementById('chat').remove();
+    document.getElementById('kick').innerHTML = data;
+    document.getElementById('script').remove();
+});
 //Import Images
 const Skybox =  new Image();
 Skybox.src = "./Assets/Env/SkyBox.png";
@@ -119,8 +139,8 @@ const MaxSpeed = 4;
 //vars for game
 let doneLoading = false;
 let map = [];
-let positionX = mapSizeX/2;
-let positionY = mapSizeY/2;
+let positionX = 0;
+let positionY = 0;
 let CurrentFPS = 0;
 let IsGrounded = false;
 let VelocityX = 0;
@@ -181,7 +201,6 @@ document.addEventListener('keyup', function(event) {
     if(event.code == 'Space') {
         keys.space = false;
     }
-    message += event.code;
 });
 
 
@@ -207,9 +226,18 @@ function placeBlockOnMouse () {
 function breakBlockOnMouse () {
     changeBlockSend (selectedTile.x, selectedTile.y, 0, true);
 }
+function sendChatFromInput(evt) {
+    if (evt.code == "Enter" && document.getElementById('chat').value != '') {
+        sendMessage(document.getElementById('chat').value);
+        document.getElementById('chat').value = '';
+    }
+}
 function changeBlockSend (x, y, ID, replace) {
     if (doneLoading)
     {
+        if (y < 1) {
+            return;
+        }
         if ((replace || (!replace && map[x + 6][mapSizeY - y - 2] == 0)) && checkInbounds(x + 6, mapSizeY - y - 2)) {
             var dataSend = {
                 posX: x + 6,
@@ -406,18 +434,17 @@ function draw ()
         }
     }
     con.drawImage(Playerimg,con.canvas.width/2 - unit/2 +18,con.canvas.height/2 - unit/2 + 32,unit*(hboxX*2),unit*(hboxX*2));
-    con.font = "70px Georgia";
-    con.fillText("SlomeJs a0.0.12", 10, 60);
+    con.font = "65px Slome";
+    con.fillText("SlomeJs a0.1", 10, 60);
     if (debug) {
         con.fillText("FPS=" + CurrentFPS + ", mouseX=" + Math.round((positionX + mouseX)*1000)/1000 + ", mouseY=" + Math.round((positionY + mouseY)*1000)/1000, 10, 130);
         con.fillText("X=" + Math.round(positionX*1000)/1000, 10, 200);
         con.fillText("Y=" + Math.round(positionY*1000)/1000, 10, 270);
     }
     for (let i in messageLog) {
-        con.fillText(messageLog[i].name, 10, 2000 - (messageLog.length - i)*70);
+        con.fillText(messageLog[i].name, 10, 2200 - (messageLog.length - i)*70);
     }
-    //con.fillText(message, 10, 1000);
-    con.drawImage(mapcolours[selBlock],10 ,340,240,240);
+    con.drawImage(mapcolours[selBlock],3600 ,0,240,240);
 }
 function RandomChance(chance)
 {

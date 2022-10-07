@@ -1,16 +1,26 @@
 body {
     overflow: hidden;
     margin: 0%;
+    font-family: "Slome", Verdana, Tahoma;
+    color: white;
 }
+
 #Main {
     width: 1920px;
     height: 1080px;
     /* image-rendering: pixelated; */
 }
+#kick {
+    color: black;
+}
 main {
     align-items: center;
     justify-content: center;
     text-align: center;
+}
+#chat {
+    width: 1920px;
+    font-size: 200%;
 }
 #head {
     padding: 30px;
@@ -20,4 +30,8 @@ main {
     align-self: flex-start;
     width: max-content;
     height: 50px;
+}
+@font-face {
+    font-family: "Slome";
+    src: url(slome_3_hex.ttf) format("truetype");
 }

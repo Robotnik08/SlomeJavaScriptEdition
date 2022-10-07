@@ -110,7 +110,7 @@ function serverStart () {
                     }
                 }
             });
-            socket.on('disconnect', function(){
+            socket.on('disconnect', () => {
                 for (let x = 0; x < ConnectedUUID.length; x++) {
                     if (ConnectedUUID[x].UUID == UUID) {
                         ConnectedUUID.splice(x, 1);
@@ -121,11 +121,12 @@ function serverStart () {
             });
         }
     });
-    setInterval(function() {
+    setInterval(() => {
         io.emit('getPlayer', ConnectedUUID);
     }, 1000/60);
 }
 let doneLoading = false;
+
 let map = [];
 const freq = 10; // 0-100, amount of noise 
 GenerateNewmap();
@@ -172,7 +173,7 @@ function RandomChance(chance)
 }
 setInterval(function() {
     if (ConnectedUUID.length > 0) {
-        save();
+        save(1);
     }
 },1000*st.autoSave)
 
@@ -214,7 +215,7 @@ function onlyLettersAndNumbers(str) {
 //console commands
 process.stdin.on('data', (data) => {
     let message = data.toString().replace(/(\r\n|\n|\r)/gm, "").replace("/", "");
-    switch (message) {
+    switch (message.split(" ")[0]) {
         case '':
             break;
         case 'help':
@@ -229,8 +230,9 @@ process.stdin.on('data', (data) => {
         case 'stopnosave':
             stopServerSafe(2);
             break;
-        case 'helloworld':
-            io.emit('getMessage', "Hello World " + Math.random());
+        case 'say':
+            io.emit('getMessage', "[SERVER] " + message.substring(4));
+            console.log("[SERVER] " + message.substring(4));
             break;
         default:
             console.log("Unknown command: '" + message +"' type '/help' for help!");
@@ -244,8 +246,8 @@ function showAllCommands () {
     console.log("List of commands:");
     console.log("/help -- shows this list");
     console.log("/stop -- stops the server (and saves the level)");
-    console.log("/save -- saves game");
     console.log("/stopnosave -- stops the server (and does not the level)");
+    console.log("/save -- saves game");
 }
 function stopServerSafe (code = -1) {
     switch (code) {
@@ -265,5 +267,6 @@ function stopServerSafe (code = -1) {
             console.log("Closed server without saving! (code:" + code + ")");
             break;
     }
+    io.emit('kickPlayer', "Server closed!");
     process.exit(code);
 }
