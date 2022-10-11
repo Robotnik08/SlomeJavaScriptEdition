@@ -1,11 +1,15 @@
 {
-    "MOTD": ["Welcome"],
-    "mapSizeX": 640,
-    "mapSizeY": 100,
+    "MOTD": ["Welcome to the server!"],
+    "mapSizeX": 1280,
+    "mapSizeY": 640,
     "worldName": "newWorld",
     "onlineMode": true,
     "adminKey": "random",
     "chat": true,
     "port": 80,
-    "autoSave": 300
+    "autoSave": 300,
+    "spamlimit": 10,
+    "checkspam": true,
+    "charlimit": true,
+    "spampunishment": "warn"
 }

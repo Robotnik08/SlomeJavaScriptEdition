@@ -14,6 +14,7 @@ let players = [];
 let messageLog = [];
 let selBlock = 1;
 let debug = false;
+let layer1 = true;
 class Player {
     constructor(UUID, posX, posY) {
         this.UUID = UUID;
@@ -22,13 +23,15 @@ class Player {
     }
 }
 class Message {
-    constructor(name, life) {
+    constructor(name, life, color = 'rgba(255, 255, 255, 1)') {
         this.name = name;
         this.life = life;
+        this.color = color;
     }
 };
 socket.on('SendWorld', (data) => {
     map = data.map1;
+    map2 = data.map2;
     mapSizeX = data.mapX;
     mapSizeY = data.mapY;
     positionX = mapSizeX/2;
@@ -42,7 +45,11 @@ socket.on('SendWorld', (data) => {
 });
 socket.on('change', (data) => {
     if (checkInbounds(data.x, data.y)) {
-        map[data.x][data.y] = data.ID;
+        if (data.isLayer1) {
+            map[data.x][data.y] = data.ID;
+        } else {
+            map2[data.x][data.y] = data.ID;
+        }
     } else {
         console.log('error, change out of bounds at: ' + data.x + ", " + data.y);
     }
@@ -74,13 +81,13 @@ setInterval(function SendPlayerPos() {
 socket.on('getPlayer', (data) => {
     players = data;
 });
-socket.on("getMessage", (data) => {
-    messageLog.push(new Message (data, 1000));
+socket.on("getMessage", (data, color = 'rgba(255, 255, 255, 1)') => {
+    messageLog.push(new Message (data, 1000, color));
 });
 function sendMessage (message) {
     switch (message.split(" ")[0]) {
         case '/name':
-            socket.emit('setName', message.split(" ")[1]);
+            socket.emit('setName', message.split(" ")[1].trim().substring(0, 30));
             break;
         case '/list':
             messageLog.push(new Message (players.length + " player(s) online!", 1000));
@@ -89,7 +96,7 @@ function sendMessage (message) {
             debug = !debug;
             break;
         default:
-            socket.emit("sendMessage", message);
+            socket.emit("sendMessage", message.trim().substring(0, 160));
             break;
     }
 };
@@ -129,6 +136,7 @@ img9.src = "./Assets/Blocks/spruce_plank.png";
 const img10 = new Image();
 img10.src = "./Assets/Blocks/spruce_log.png";
 const mapcolours = [img0, img1, img2, img3, img4, img5, img6, img7, img8, img9, img10];
+const transparent = [true, false, false, false, false, false, true, false, false, false, false];
 
 //Constants, modify for different settings! Experiment!
 const Gravity = 9.81*2;
@@ -139,6 +147,7 @@ const MaxSpeed = 4;
 //vars for game
 let doneLoading = false;
 let map = [];
+let map2 = [];
 let positionX = 0;
 let positionY = 0;
 let CurrentFPS = 0;
@@ -152,7 +161,8 @@ let keys = {
     a: false,
     s: false,
     d: false,
-    space: false
+    space: false,
+    shift: false
 };
 let selectedTile = {
     x: 0,
@@ -173,6 +183,9 @@ document.addEventListener('keydown', function(event) {
     }
     if(event.code == 'Space') {
         keys.space = true;
+    }
+    if (event.code == 'ShiftLeft') {
+        keys.shift = true;
     }
 });
 function changeSelblock() {
@@ -201,6 +214,9 @@ document.addEventListener('keyup', function(event) {
     if(event.code == 'Space') {
         keys.space = false;
     }
+    if (event.code == 'ShiftLeft') {
+        keys.shift = false;
+    }
 });
 
 
@@ -218,13 +234,23 @@ setInterval(function() {
                 messageLog.splice(i, 1);
             }
         }
+        layer1 = !keys.shift;
     }
 }, 1000/60);
 function placeBlockOnMouse () {
-    changeBlockSend (selectedTile.x, selectedTile.y, selBlock, false);
+    if (layer1) {
+        changeBlockSend (selectedTile.x, selectedTile.y, selBlock, false);
+    } else {
+        changeBlockSend (selectedTile.x, selectedTile.y, selBlock, false, false);
+    }
 }
 function breakBlockOnMouse () {
-    changeBlockSend (selectedTile.x, selectedTile.y, 0, true);
+    if (map[selectedTile.x + 6][mapSizeY - selectedTile.y - 2] == 0) {
+        changeBlockSend (selectedTile.x, selectedTile.y, 0, true, false);
+    }
+    else {
+        changeBlockSend (selectedTile.x, selectedTile.y, 0, true);
+    }
 }
 function sendChatFromInput(evt) {
     if (evt.code == "Enter" && document.getElementById('chat').value != '') {
@@ -232,20 +258,31 @@ function sendChatFromInput(evt) {
         document.getElementById('chat').value = '';
     }
 }
-function changeBlockSend (x, y, ID, replace) {
+function changeBlockSend (x, y, ID, replace, isLayer1 = true) {
     if (doneLoading)
     {
         if (y < 1) {
             return;
         }
-        if ((replace || (!replace && map[x + 6][mapSizeY - y - 2] == 0)) && checkInbounds(x + 6, mapSizeY - y - 2)) {
+        if (isLayer1 && (replace || (!replace && map[x + 6][mapSizeY - y - 2] == 0)) && checkInbounds(x + 6, mapSizeY - y - 2)) {
             var dataSend = {
                 posX: x + 6,
                 posY: mapSizeY - y - 2,
-                blockID: ID
+                blockID: ID,
+                isLayer1: isLayer1
             };
-            socket.emit('ChangeBlock', dataSend)
+            socket.emit('ChangeBlock', dataSend);
             map[x + 6][mapSizeY - y - 2] = ID;
+        }
+        if (!isLayer1 &&(replace || (!replace && map2[x + 6][mapSizeY - y - 2] == 0 && map[x + 6][mapSizeY - y - 2] == 0)) && checkInbounds(x + 6, mapSizeY - y - 2)) {
+            var dataSend = {
+                posX: x + 6,
+                posY: mapSizeY - y - 2,
+                blockID: ID,
+                isLayer1: isLayer1
+            };
+            socket.emit('ChangeBlock', dataSend);
+            map2[x + 6][mapSizeY - y - 2] = ID;
         }
     }
 }
@@ -403,14 +440,22 @@ function draw ()
     let hasFill = false;
     let needFillX = 0;
     let needFillY = 0;
+    con.fillStyle = 'rgba(0,0,0,0.5)'
     for (var x = -6; x <= 18; x++)
     {
         for (var y = -9; y <= 9; y++)
         {
             if (x+Math.round(positionX) >= 0 && x+Math.round(positionX) < mapSizeX && y+Math.round(positionY) >= 0 && y+Math.round(positionY) < mapSizeY)
             {
+                if (map2[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))] < mapcolours.length && map2[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))] > 0 && transparent[map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))]])
+                {
+                    //con.filter = 'brightness(50%)';
+                    con.drawImage(mapcolours[map2[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))]],(x-(positionX-Math.round(positionX)) + 5.5)*unit,(y-(positionY-Math.round(positionY)) + 4.37)*unit,unit*1.01,unit*1.01);
+                    con.fillRect((x-(positionX-Math.round(positionX)) + 5.5)*unit,(y-(positionY-Math.round(positionY)) + 4.37)*unit,unit*1.01,unit*1.01);
+                }
                 if (map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))] < mapcolours.length && map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))] > 0)
                 {
+                    //con.filter = 'brightness(100%)';
                     con.drawImage(mapcolours[map[x+Math.round(positionX)][mapSizeY-(y+Math.round(positionY))]],(x-(positionX-Math.round(positionX)) + 5.5)*unit,(y-(positionY-Math.round(positionY)) + 4.37)*unit,unit*1.01,unit*1.01);
                 }
                 if (x - 6 +Math.round(positionX) == selectedTile.x && y+Math.round(positionY) == selectedTile.y && !hasFill)
@@ -422,6 +467,7 @@ function draw ()
             }   
         }
     }
+    //con.filter = 'brightness(100%)';
     if (hasFill)
     {
         con.fillStyle = "rgba(255, 255, 255, 0.5)";
@@ -435,13 +481,14 @@ function draw ()
     }
     con.drawImage(Playerimg,con.canvas.width/2 - unit/2 +18,con.canvas.height/2 - unit/2 + 32,unit*(hboxX*2),unit*(hboxX*2));
     con.font = "65px Slome";
-    con.fillText("SlomeJs a0.1", 10, 60);
+    con.fillText("SlomeJs a0.1.1", 10, 60);
     if (debug) {
         con.fillText("FPS=" + CurrentFPS + ", mouseX=" + Math.round((positionX + mouseX)*1000)/1000 + ", mouseY=" + Math.round((positionY + mouseY)*1000)/1000, 10, 130);
         con.fillText("X=" + Math.round(positionX*1000)/1000, 10, 200);
         con.fillText("Y=" + Math.round(positionY*1000)/1000, 10, 270);
     }
     for (let i in messageLog) {
+        con.fillStyle = messageLog[i].color;
         con.fillText(messageLog[i].name, 10, 2200 - (messageLog.length - i)*70);
     }
     con.drawImage(mapcolours[selBlock],3600 ,0,240,240);

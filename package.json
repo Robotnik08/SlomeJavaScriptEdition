@@ -1,6 +1,6 @@
 {
-  "name": "slomejavascriptedition",
-  "version": "0.0.12",
+  "name": "slome.js",
+  "version": "a0.1.1",
   "description": "",
   "main": "server.js",
   "scripts": {
